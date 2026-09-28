@@ -28,14 +28,15 @@ android {
       val keystoreFile = file(keystorePath)
       val storePass = System.getenv("STORE_PASSWORD")
       val keyPass = System.getenv("KEY_PASSWORD")
+      val debugKeystore = file("${rootDir}/debug.keystore")
       if (keystoreFile.exists() && !storePass.isNullOrEmpty() && !keyPass.isNullOrEmpty()) {
         storeFile = keystoreFile
         storePassword = storePass
         keyAlias = System.getenv("KEY_ALIAS") ?: "upload"
         keyPassword = keyPass
-      } else {
+      } else if (debugKeystore.exists()) {
         // Fall back to debug keystore so assembleRelease always succeeds even without custom credentials
-        storeFile = file("${rootDir}/debug.keystore")
+        storeFile = debugKeystore
         storePassword = "android"
         keyAlias = "androiddebugkey"
         keyPassword = "android"
