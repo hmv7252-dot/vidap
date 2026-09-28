@@ -1,4 +1,4 @@
-name: Build Debug APK
+name: Build Android Release APK
 
 on:
   push:
@@ -13,8 +13,8 @@ permissions:
   contents: read
 
 jobs:
-  build-debug-apk:
-    name: Build Debug APK
+  build-release-apk:
+    name: Build Release APK
     runs-on: ubuntu-latest
 
     steps:
@@ -27,9 +27,6 @@ jobs:
           distribution: temurin
           java-version: "17"
           cache: gradle
-
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
 
       - name: Make Gradle wrapper executable
         run: |
@@ -48,11 +45,28 @@ jobs:
             cp .env.example .env 2>/dev/null || touch .env
           fi
 
-      - name: Restore debug keystore if present
+      - name: Ensure release signing keystore exists
         run: |
-          if [ -f "debug.keystore.base64" ] && [ ! -f "debug.keystore" ]; then
-            echo "Decoding debug.keystore from base64..."
+          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+            echo "Decoding custom release keystore from secrets..."
+            echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > my-upload-key.jks
+            echo "KEYSTORE_PATH=$GITHUB_WORKSPACE/my-upload-key.jks" >> $GITHUB_ENV
+            echo "STORE_PASSWORD=${{ secrets.STORE_PASSWORD }}" >> $GITHUB_ENV
+            echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
+            echo "KEY_ALIAS=${{ secrets.KEY_ALIAS || 'upload' }}" >> $GITHUB_ENV
+          elif [ -f "debug.keystore.base64" ] && [ ! -f "debug.keystore" ]; then
+            echo "Decoding debug.keystore from base64 for signing..."
             base64 -d debug.keystore.base64 > debug.keystore
+          else
+            echo "Generating self-signed upload keystore for release artifact..."
+            keytool -genkey -v -keystore my-upload-key.jks \
+              -alias upload -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass android -keypass android \
+              -dname "CN=AI Video Generator, O=AI Studio, C=US"
+            echo "KEYSTORE_PATH=$GITHUB_WORKSPACE/my-upload-key.jks" >> $GITHUB_ENV
+            echo "STORE_PASSWORD=android" >> $GITHUB_ENV
+            echo "KEY_PASSWORD=android" >> $GITHUB_ENV
+            echo "KEY_ALIAS=upload" >> $GITHUB_ENV
           fi
 
       - name: Ensure mock google-services.json exists
@@ -88,26 +102,21 @@ jobs:
 EOF
           fi
 
-      - name: Build Debug APK
+      - name: Build Release APK
         run: |
           set -e
-          if [ -f "./gradlew" ]; then
-            ./gradlew assembleDebug --stacktrace -Dorg.gradle.configuration-cache=false
-          else
-            echo "Gradle wrapper not found."
-            exit 1
-          fi
+          ./gradlew assembleRelease --stacktrace -Dorg.gradle.configuration-cache=false
 
-      - name: Find Debug APK
+      - name: Find Release APK
         run: |
-          echo "Searching for generated APK..."
-          find . -type f -name "*-debug.apk" -print
+          echo "Searching for generated release APK..."
+          find . -type f -name "*release*.apk" -print
 
-      - name: Upload Debug APK
+      - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
-          name: debug-apk
+          name: release-apk
           path: |
-            **/build/outputs/apk/debug/*-debug.apk
+            **/build/outputs/apk/release/*release*.apk
           if-no-files-found: error
           retention-days: 14
