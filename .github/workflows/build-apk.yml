@@ -1,9 +1,10 @@
-name: Build Android Release APK
+name: Build Android APK (Debug & Release)
 
 on:
   push:
     branches:
       - main
+      - master
     tags:
       - 'v*'
       - '*'
@@ -11,11 +12,11 @@ on:
 
 jobs:
   build:
-    name: Build Release APK
+    name: Build Android APKs
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Code
+      - name: Checkout Source Code
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
@@ -28,46 +29,55 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Grant Execute Permissions to Gradle
+      - name: Validate or Generate Gradle Wrapper
         run: |
           if [ ! -f "gradlew" ]; then
             echo "gradlew not found, generating wrapper..."
-            gradle wrapper
+            gradle wrapper --gradle-version 8.13
           fi
           chmod +x gradlew
 
-      - name: Configure Keystore for Release Build
+      - name: Create Mock google-services.json if missing
+        run: |
+          if [ ! -f "app/google-services.json" ]; then
+            echo "Creating dummy google-services.json to satisfy build plugins..."
+            echo '{"project_info":{"project_number":"123456789","project_id":"dummy-project","storage_bucket":"dummy.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:123456789:android:abcdef","android_client_info":{"package_name":"com.aistudio.aivideogen.kzvxq"}},"oauth_client":[],"api_key":[{"current_key":"dummy_api_key"}],"services":{}}],"configuration_version":"1"}' > app/google-services.json
+          fi
+
+      - name: Setup Signing Keystore
         run: |
           if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
-            echo "Decoding release keystore from GitHub Secrets..."
+            echo "Decoding release keystore from secrets..."
             echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > my-upload-key.jks
             echo "KEYSTORE_PATH=$GITHUB_WORKSPACE/my-upload-key.jks" >> $GITHUB_ENV
             echo "STORE_PASSWORD=${{ secrets.STORE_PASSWORD }}" >> $GITHUB_ENV
             echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
-          elif [ ! -f "my-upload-key.jks" ]; then
-            echo "No keystore provided; creating temporary signing keystore for CI release build..."
+          else
+            echo "Generating self-signed keystore for build artifact..."
             keytool -genkey -v -keystore my-upload-key.jks \
               -alias upload -keyalg RSA -keysize 2048 -validity 10000 \
               -storepass android -keypass android \
-              -dname "CN=Android Release, O=AI Video Generator, C=US"
+              -dname "CN=AI Video Generator, O=AI Studio, C=US"
             echo "KEYSTORE_PATH=$GITHUB_WORKSPACE/my-upload-key.jks" >> $GITHUB_ENV
             echo "STORE_PASSWORD=android" >> $GITHUB_ENV
             echo "KEY_PASSWORD=android" >> $GITHUB_ENV
           fi
 
-      - name: Build Release APK
-        run: ./gradlew assembleRelease --stacktrace
-
-      - name: Locate and Prepare APK
+      - name: Build Debug & Release APKs
         run: |
-          mkdir -p output-apk
-          find app/build/outputs/apk/release/ -type f -name "*.apk" -exec cp {} output-apk/ai-video-generator-release.apk \;
-          echo "Output APK details:"
-          ls -la output-apk/
+          echo "Building Debug and Release APKs..."
+          ./gradlew assembleDebug assembleRelease --stacktrace
 
-      - name: Upload Release APK Artifact
+      - name: Collect Generated APKs
+        run: |
+          mkdir -p output-apks
+          find app/build/outputs/apk/ -type f -name "*.apk" -exec cp -v {} output-apks/ \;
+          echo "Collected APK files:"
+          ls -la output-apks/
+
+      - name: Upload APKs as Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ai-video-generator-release-apk
-          path: output-apk/ai-video-generator-release.apk
+          name: ai-video-generator-apks
+          path: output-apks/*.apk
           retention-days: 30
