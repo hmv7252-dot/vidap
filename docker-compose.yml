@@ -1,0 +1,34 @@
+version: "3.8"
+
+services:
+  ai-video-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ai_video_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - MAX_CONCURRENT_JOBS=1
+      - INITIAL_FREE_CREDITS=3
+      - DAILY_FREE_CREDITS=1
+      - MODEL_ID=stabilityai/stable-video-diffusion-img2vid-xt
+      - TORCH_DTYPE=float16
+      - STORAGE_CLEANUP_HOURS=24
+    volumes:
+      - ./backend/uploads:/app/uploads
+      - ./backend/generated:/app/generated
+      - huggingface_cache:/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+volumes:
+  huggingface_cache:

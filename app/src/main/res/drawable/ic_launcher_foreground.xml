@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Camera body outer -->
+    <path
+        android:pathData="M32,36 h34 a6,6 0 0 1 6,6 v24 a6,6 0 0 1 -6,6 h-34 a6,6 0 0 1 -6,-6 v-24 a6,6 0 0 1 6,-6 z"
+        android:fillColor="#1E1B4B" />
+
+    <!-- Camera Body -->
+    <path
+        android:pathData="M34,38 h30 a4,4 0 0 1 4,4 v20 a4,4 0 0 1 -4,4 h-30 a4,4 0 0 1 -4,-4 v-20 a4,4 0 0 1 4,-4 z"
+        android:fillColor="#6366F1" />
+
+    <!-- Camera Lens Triangle -->
+    <path
+        android:pathData="M68,45 L80,37 a2,2 0 0 1 3,1.7 v28.6 a2,2 0 0 1 -3,1.7 L68,61 z"
+        android:fillColor="#818CF8" />
+
+    <!-- Central Play Icon -->
+    <path
+        android:pathData="M43,45 L55,53 L43,61 Z"
+        android:fillColor="#FFFFFF" />
+
+    <!-- AI Sparkle 1 (Top Left) -->
+    <path
+        android:pathData="M27,29 C27,33 24,35 24,35 C24,35 27,37 27,41 C27,37 30,35 30,35 C30,35 27,33 27,29 Z"
+        android:fillColor="#38BDF8" />
+
+    <!-- AI Sparkle 2 (Top Right) -->
+    <path
+        android:pathData="M78,25 C78,29 75,31 75,31 C75,31 78,33 78,37 C78,33 81,31 81,31 C81,31 78,29 78,25 Z"
+        android:fillColor="#F472B6" />
+
+    <!-- Film strip dot accents on top of camera -->
+    <path
+        android:pathData="M35,41 h3 v3 h-3 z M41,41 h3 v3 h-3 z M47,41 h3 v3 h-3 z"
+        android:fillColor="#E0E7FF" />
+</vector>

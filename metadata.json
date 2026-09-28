@@ -1,0 +1,6 @@
+{
+  "name": "AI Video Generator",
+  "description": "Turn your images into cinematic AI videos using a local open-source GPU-powered image-to-video backend.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
