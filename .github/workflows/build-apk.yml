@@ -24,10 +24,56 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-          cache: 'gradle'
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+
+      - name: Restore debug keystore if present
+        run: |
+          if [ -f "debug.keystore.base64" ]; then
+            echo "Decoding debug.keystore from repository..."
+            base64 -d debug.keystore.base64 > debug.keystore
+          fi
+
+      - name: Ensure .env file exists
+        run: |
+          if [ ! -f ".env" ]; then
+            echo "Creating fallback .env from .env.example..."
+            cp .env.example .env 2>/dev/null || touch .env
+          fi
+
+      - name: Create Placeholder google-services.json If Missing
+        run: |
+          if [ ! -f "app/google-services.json" ]; then
+            echo "Creating placeholder google-services.json..."
+            cat << 'EOF' > app/google-services.json
+{
+  "project_info": {
+    "project_number": "123456789",
+    "project_id": "placeholder-project",
+    "storage_bucket": "placeholder.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:123456789:android:abcdef123456",
+        "android_client_info": {
+          "package_name": "com.aistudio.aivideogen.kzvxq"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "dummy_api_key"
+        }
+      ],
+      "services": {}
+    }
+  ],
+  "configuration_version": "1"
+}
+EOF
+          fi
 
       - name: Prepare Gradle Wrapper
         run: |
@@ -37,41 +83,8 @@ jobs:
           fi
           chmod +x gradlew
 
-      - name: Create Dummy google-services.json If Missing
-        run: |
-          if [ ! -f "app/google-services.json" ]; then
-            echo "Creating placeholder google-services.json..."
-            cat << 'EOF' > app/google-services.json
-          {
-            "project_info": {
-              "project_number": "123456789",
-              "project_id": "placeholder-project",
-              "storage_bucket": "placeholder.appspot.com"
-            },
-            "client": [
-              {
-                "client_info": {
-                  "mobilesdk_app_id": "1:123456789:android:abcdef123456",
-                  "android_client_info": {
-                    "package_name": "com.aistudio.aivideogen.kzvxq"
-                  }
-                },
-                "oauth_client": [],
-                "api_key": [
-                  {
-                    "current_key": "dummy_api_key"
-                  }
-                ],
-                "services": {}
-              }
-            ],
-            "configuration_version": "1"
-          }
-          EOF
-          fi
-
       - name: Build Debug APK
-        run: ./gradlew assembleDebug --stacktrace --no-daemon
+        run: ./gradlew assembleDebug --stacktrace --no-daemon -Dorg.gradle.configuration-cache=false
 
       - name: Collect Generated APKs
         run: |
